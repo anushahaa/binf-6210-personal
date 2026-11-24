@@ -1,3 +1,11 @@
+#####************BINF 6210 2026 Assignment 2
+#CONTRIBUTORS
+# Primary author: Anusha Srivastava (original Assignment 1 script)
+# Secondary contributor: Emmanuella Ezenwoko (Assignment 2 edits)
+#   Edit 1: Fixed conservation plot (removed double counting at 5%, added sample sizes)
+#   Edit 2: Added Wilcoxon (length) and chi-square (class composition) tests
+#   Edit 3: Added reusable functions for loading data and bubble plots, removed unused code
+
 ###1 - OVERVIEW----
 
 #####Question----
@@ -13,9 +21,9 @@
 ####Installation---- 
 #Package installation & load libraries + Data exploration for both species (T. spiralis & T. murrelli)
 
-install.packages("tidyverse")
-install.packages("permute")
-install.packages("patchwork")
+#install.packages("tidyverse")
+#install.packages("permute")
+#install.packages("patchwork")
 
 rm(list = ls())
 
@@ -165,7 +173,7 @@ fig1 <- ggplot(combined_te, aes(x = species, y = qry_width, fill = species)) + g
 
 #print to Plots viewer and save directly to output/
 print(fig1)
-ggsave("../output/figure1_length_distribution.png", plot = fig1, width = 6, height = 4.5)
+ggsave("../binf-6210-personal/Assignment 1 Code/output/figure1_length_distribution.png", plot = fig1, width = 6, height = 4.5)
 
 ####Class composition----
 #figure 2: Major Repeat Class Composition (Main Comparative Result)
@@ -183,7 +191,7 @@ fig2 <- ggplot(te_class_summary, aes(x = broad_class, y = percentage, fill = spe
   )
 
 print(fig2)
-ggsave("../output/figure2_class_composition.png", plot = fig2, width = 7, height = 5)
+ggsave("../binf-6210-personal/Assignment 1 Code/output/figure2_class_composition.png", plot = fig2, width = 7, height = 5)
 
 ####Contig repeat density----
 
@@ -213,15 +221,15 @@ fig3 <- ggplot(contig_te_counts, aes(x = species, y = n, fill = species)) +
   theme(legend.position = "none")
 
 print(fig3)
-ggsave("../output/figure3_contig_density.png", plot = fig3, width = 6, height = 4.5)
+ggsave("../binf-6210-personal/Assignment 1 Code/output/figure3_contig_density.png", plot = fig3, width = 6, height = 4.5)
 
 cat("\n--- Statistical Test on TE Contig Density ---\n")
 print(wilcox_te_res)
 
 ###
 
-df_percdiv <- aggregate(x = df_tstmclean, by = list(MatchClass = df_tstmclean$broad_class), FUN = function(x) mean(x, na.rm = TRUE))
-summary(df_percdiv)
+#df_percdiv <- aggregate(x = df_tstmclean, by = list(MatchClass = df_tstmclean$broad_class), FUN = function(x) mean(x, na.rm = TRUE))
+#summary(df_percdiv)
 
 ####Divergence----
 # consider comparing and confirming the evolutionary relationship between the two: At a rate of approximately 5% divergence from consensus (Kimura divergence). Under 5% is considered very low divergence. This will address question into which of the two species is more closely resembling the family consensus. Investigation into divergence will shed light into how alike they are (percentage conservation from the same ancestor/reference), whereas lowest divergence will allow for higher resolution into where the divergence starts to occur. 
@@ -314,7 +322,7 @@ AvgDivergence_plot <- ggAvgDiv + ggAvgCons +
 AvgDivergence_plot
 
 ggsave(
-  filename = "../output/fig_2_AvgDiv.png",
+  filename = "../binf-6210-personal/Assignment 1 Code/output/fig_2_AvgDiv.png",
   plot = AvgDivergence_plot,
   width = 10,
   height = 8,
@@ -364,7 +372,7 @@ Divergence_plot <- ggDiv + ggCons +
 
 Divergence_plot
 ggsave(
-  filename = "../output/fig_3_Div.png",
+  filename = "../binf-6210-personal/Assignment 1 Code/output/fig_3_Div.png",
   plot = Divergence_plot,
   width = 10,
   height = 8,
@@ -432,7 +440,7 @@ Bubble_plot <- mv_combined + mv_edited +
 Bubble_plot
 
 ggsave(
-  filename = "../output/fig_45_Comp.png",
+  filename = "../binf-6210-personal/Assignment 1 Code/output/fig_45_Comp.png",
   plot = Bubble_plot,
   width = 10,
   height = 8,
@@ -441,7 +449,7 @@ ggsave(
 )
 
 ggsave(
-  filename = "../output/fig_45_Compb.png",
+  filename = "../binf-6210-personal/Assignment 1 Code/output/fig_45_Compb.png",
   plot = Bubble_plot,
   width = 20,
   height = 8,
@@ -449,13 +457,15 @@ ggsave(
   dpi = 300
 )
 
+# EDIT 1 (Emmanuella): The original "conserved" plot used only 1-4 records per class.
+# This version counts how many records are behind each average, drops classes that are missing from one species, and no longer counts repeats at exactly 5% twice.
 
-# Edit 1 (check): how many records are in the "conserved" group?
+#check: how many records are in the "conserved" group?
 combined_te |>
   filter(perc_div < 5) |>
   count(species, matching_class)
 
-# Edit 1 (new): fair comparison with sample sizes
+#fair comparison with sample sizes
 
 # Split repeats into "conserved" (<5%) and "diverged" (>=5%).
 # The old code used >=5 and <=5, so repeats at exactly 5% were counted twice.
@@ -463,6 +473,9 @@ div_summary <- combined_te |>
   mutate(div_group = if_else(perc_div < 5, "conserved", "diverged")) |>
   group_by(div_group, matching_class, species) |>
   summarise(avgPD = mean(perc_div), n = n(), .groups = "drop")
+
+# colours defined once, so every plot can reuse them
+species_cols <- c("T. spiralis" = "#2b8cbe", "T. murrelli" = "#e6550d")
 
 # A function that makes one dumbbell plot.
 # It only keeps classes that have at least min_n records in BOTH species.
@@ -472,13 +485,13 @@ make_dumbbell <- function(df, group, min_n = 10, title) {
     count(matching_class, name = "n_species") |>
     filter(n_species == 2) |>
     pull(matching_class)
-  
+
   df |>
     filter(div_group == group, matching_class %in% keep) |>
     ggplot(aes(x = avgPD, y = reorder(matching_class, avgPD), colour = species)) +
     geom_line(aes(group = matching_class), colour = "grey60", linewidth = 0.8) +
     geom_point(size = 3) +
-    scale_colour_manual(values = c("T. spiralis" = "#2b8cbe", "T. murrelli" = "Z")) +
+    scale_colour_manual(values = species_cols) +
     labs(title = title, x = "Average Percent Divergence (%)",
          y = "Repeat Class", colour = "Species") +
     theme_minimal()
@@ -495,7 +508,7 @@ div_summary |> filter(div_group == "conserved") |> print(width = Inf)
 ggsave("../binf-6210-personal/Assignment 1 Code/output/fig_2_AvgDiv_new.png", plot = p_div, width = 8, height = 8, dpi = 300)
 
 
-
+# EDIT 2 (Emmanuella): The original script had no statistical tests for length or class composition. These tests check whether the two species really differ.
 # Edit 2a: do the two species differ in repeat length?
 len_test <- wilcox.test(qry_width ~ species, data = combined_te, conf.int = TRUE)
 print(len_test)
@@ -519,3 +532,50 @@ cat("Cramer's V =", round(cramers_v, 3), "\n")
 
 # Which classes differ most? (values beyond +2 or -2 stand out)
 round(chi_res$stdres, 2)
+
+
+# EDIT 3 (Emmanuella): Reusable functions replace copy-pasted code, and here() makes file paths work on any computer.
+# Edit 3A: one reusable loading recipe, with portable file paths
+
+#install.packages("here")
+ 
+ library(here)
+ 
+
+# a function that loads one species file, keeps the useful columns, and adds the species name
+load_te <- function(path, species_name) {
+  read_csv(path, show_col_types = FALSE) |>
+    select(qry_id, qry_start, qry_end, qry_width, matching_class, perc_div, sw_score) |>
+    mutate(species = species_name)
+}
+
+df_tstm_new <- bind_rows(load_te(here("Assignment 1 Code", "data", "trichinella_spiralis_te.csv"), "T. spiralis"),
+  load_te(here("Assignment 1 Code", "data", "trichinella murrelli_te.csv"), "T. murrelli"))
+
+#check
+nrow(df_tstm_new) == nrow(df_tstm)
+
+
+# Edit 3B: one reusable bubble plot recipe
+make_bubble <- function(df, title) {
+  ggplot(df, aes(x = perc_div, y = df_telength, size = sw_score,
+                 fill = broad_class, shape = species)) +
+    geom_point(alpha = 0.5, colour = "black") +
+    scale_shape_manual(values = c("T. spiralis" = 21, "T. murrelli" = 24)) +
+    guides(fill = guide_legend(override.aes = list(shape = 21, colour = "black", alpha = 1))) +
+    labs(title = title,
+         x = "Percent Divergence (%)",
+         y = "Sequence Length (bp)",
+         fill = "Repeat Class", shape = "Species", size = "SW_score") +
+    theme_minimal()
+}
+
+bubble_all <- make_bubble(df_tstmclean, "T. spiralis vs. T. murrelli")
+
+bubble_noLTR <- make_bubble(
+  filter(df_tstmclean, broad_class != "LTR Retrotransposon"),
+  "T. spiralis vs. T. murrelli (without LTR)"
+)
+
+Bubble_plot_new <- bubble_all + bubble_noLTR + plot_layout(ncol = 2)
+Bubble_plot_new
