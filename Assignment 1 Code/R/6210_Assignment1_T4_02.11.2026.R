@@ -449,3 +449,73 @@ ggsave(
   dpi = 300
 )
 
+
+# Edit 1 (check): how many records are in the "conserved" group?
+combined_te |>
+  filter(perc_div < 5) |>
+  count(species, matching_class)
+
+# Edit 1 (new): fair comparison with sample sizes
+
+# Split repeats into "conserved" (<5%) and "diverged" (>=5%).
+# The old code used >=5 and <=5, so repeats at exactly 5% were counted twice.
+div_summary <- combined_te |>
+  mutate(div_group = if_else(perc_div < 5, "conserved", "diverged")) |>
+  group_by(div_group, matching_class, species) |>
+  summarise(avgPD = mean(perc_div), n = n(), .groups = "drop")
+
+# A function that makes one dumbbell plot.
+# It only keeps classes that have at least min_n records in BOTH species.
+make_dumbbell <- function(df, group, min_n = 10, title) {
+  keep <- df |>
+    filter(div_group == group, n >= min_n) |>
+    count(matching_class, name = "n_species") |>
+    filter(n_species == 2) |>
+    pull(matching_class)
+  
+  df |>
+    filter(div_group == group, matching_class %in% keep) |>
+    ggplot(aes(x = avgPD, y = reorder(matching_class, avgPD), colour = species)) +
+    geom_line(aes(group = matching_class), colour = "grey60", linewidth = 0.8) +
+    geom_point(size = 3) +
+    scale_colour_manual(values = c("T. spiralis" = "#2b8cbe", "T. murrelli" = "Z")) +
+    labs(title = title, x = "Average Percent Divergence (%)",
+         y = "Repeat Class", colour = "Species") +
+    theme_minimal()
+}
+
+p_div <- make_dumbbell(div_summary, "diverged", min_n = 10,
+                       title = "Diverged classes (>= 5%)")
+p_div
+
+ # look at the table first
+div_summary |> filter(div_group == "conserved") |> print(width = Inf)  
+
+#save
+ggsave("../binf-6210-personal/Assignment 1 Code/output/fig_2_AvgDiv_new.png", plot = p_div, width = 8, height = 8, dpi = 300)
+
+
+
+# Edit 2a: do the two species differ in repeat length?
+len_test <- wilcox.test(qry_width ~ species, data = combined_te, conf.int = TRUE)
+print(len_test)
+
+# Medians for context
+combined_te |>
+  group_by(species) |>
+  summarise(median_length = median(qry_width), n = n())
+
+
+# Edit 2b: do the species differ in the mix of repeat classes?
+class_table <- table(combined_te$species, combined_te$broad_class)
+print(class_table)
+
+chi_res <- chisq.test(class_table)
+print(chi_res)
+
+# How big is the difference? (0 = none, 1 = huge)
+cramers_v <- sqrt(unname(chi_res$statistic) / (sum(class_table) * (min(dim(class_table)) - 1)))
+cat("Cramer's V =", round(cramers_v, 3), "\n")
+
+# Which classes differ most? (values beyond +2 or -2 stand out)
+round(chi_res$stdres, 2)
