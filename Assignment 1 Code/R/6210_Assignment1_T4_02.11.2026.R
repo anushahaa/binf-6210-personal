@@ -33,7 +33,7 @@ library(patchwork)
 # Date of Download: October 23, 2026
 
 #####trichinella spiralis----
-spiralis_raw <- read_csv("../data/trichinella_spiralis_te.csv")
+spiralis_raw <- read_csv("../binf-6210-personal/Assignment 1 Code/data/trichinella_spiralis_te.csv")
 
 # check class
 class(spiralis_raw)
@@ -48,7 +48,7 @@ summary(spiralis_raw)
 dim(spiralis_raw)
 
 #####trichinella murelli----
-murrelli_raw <- read_csv("../data/trichinella murrelli_te.csv")
+murrelli_raw <- read_csv("../binf-6210-personal/Assignment 1 Code/data/trichinella murrelli_te.csv")
 
 # check class
 class(murrelli_raw)
